@@ -1,0 +1,12 @@
+[package]
+name = "cm-shim"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# all-protocols: any protocol wl-proxy is not built with gets filtered away
+# from the app, so we want everything it knows.
+wl-proxy = { version = "0.1.4", features = ["all-protocols"] }
+
+[profile.release]
+opt-level = 2
