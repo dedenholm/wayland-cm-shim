@@ -31,7 +31,7 @@ chmod + x install.sh
 
 
 ### 2: **Create a VCGT-less .icc profile with DisplayCAL**
- [Follow this tutorial on Xaver Hugl's blog.][https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html]. 
+ [Follow this tutorial on Xaver Hugl's blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html). 
 
 ### 3: **Set your compositor color profile to the .icc created in step 2**
 In KDE: System settings > Display Configuration > Color profile;
