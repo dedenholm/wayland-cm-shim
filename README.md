@@ -307,11 +307,9 @@ chromaticities and no name at all. When the answer is `srgb`, the shim sets that
 same description back on the surface instead of declaring. Nothing gets
 converted, which is what color management being off actually means.
 
-One line on stderr, once per launch, no notification:
-
-```
-[cm-shim] KDE has no display profile set (it prefers plain sRGB); mirroring that back instead of declaring
-```
+It does this silently. KWin prefers plain sRGB for some surfaces even when a
+profile is loaded, so the shim can't tell you from one answer whether color
+management is doing anything, and it doesn't pretend to.
 
 The shim re-asks whenever KWin says its preference changed, so loading a profile
 in System Settings, or dragging the window to a monitor that has one, switches it

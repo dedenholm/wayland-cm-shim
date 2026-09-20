@@ -252,17 +252,6 @@ fn announce_default() {
     eprintln!("[cm-shim] or choose another space with -s (see --help).");
 }
 
-/// Once per launch, on stderr only. This is a compositor quirk, not a failure:
-/// colour management is still on, it simply has nothing left to do. Nobody
-/// needs a notification about it.
-fn announce_kde_srgb() {
-    static TOLD: AtomicBool = AtomicBool::new(false);
-    if TOLD.swap(true, Ordering::Relaxed) {
-        return;
-    }
-    eprintln!("[cm-shim] KDE has no display profile set (it prefers plain sRGB); mirroring that back instead of declaring");
-}
-
 // --------------------------------------------------- per-connection state ---
 
 /// One per app connection (an app may open several).
@@ -619,9 +608,12 @@ impl WpImageDescriptionInfoV1Handler for PreferredInfo {
                 // a monitor it assumes is sRGB. Handing its own description
                 // back is the identity transform: what bypass mode does, and
                 // the same result Hyprland gives by dropping the protocol.
+                //
+                // Silently. This says nothing about whether a profile is
+                // loaded: KWin prefers plain sRGB for some surfaces even when
+                // one is, so any message here would be guessing.
                 self.cm.send_set_image_description(&self.desc, intent(&self.ctx.cfg));
                 apply_now(&self.surface);
-                announce_kde_srgb();
             } else {
                 declare_on(&self.ctx, &self.cm, &self.surface);
             }
