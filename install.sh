@@ -89,6 +89,21 @@ do_install() {
 
 # intent: perceptual | relative | relative_bpc | absolute | saturation
 #intent = perceptual
+
+# assume_kde_srgb_is_unmanaged: KDE only, default 1.
+#
+# KWin does not switch its color management off when the display profile is set
+# to None. It keeps the protocol up, says the output is plain sRGB, and converts
+# everything into that for a monitor it assumes is sRGB - so declaring a wide
+# space into it makes your colors worse, not better. When the shim sees that
+# answer it hands KWin's own description back instead, so nothing is converted.
+# That is the same result Hyprland gives by switching its color management off.
+#
+# Set this to 0 if your monitor really is sRGB and you have a real sRGB profile
+# loaded in KDE. There KWin says sRGB and means it, and declaring is correct.
+#
+# Ignored anywhere but KDE.
+#assume_kde_srgb_is_unmanaged = 1
 CONF
     fi
 

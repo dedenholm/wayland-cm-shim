@@ -199,6 +199,10 @@ Leave `space` out of the config entirely and you get `adobe_rgb`.
 Intents: `perceptual`, `relative`, `relative_bpc`, `absolute`, `saturation`
 (default `perceptual`).
 
+On KDE there's one more key, `assume_kde_srgb_is_unmanaged` (default `1`). It's
+explained under "KDE with no display profile" in section 3, and ignored
+everywhere else.
+
 ## About bypass mode
 
 `-s display` claims the app's pixels are already in the compositor's own output
@@ -213,6 +217,7 @@ correctly on other compositors, but it's not where you should start.
 
 | Symptom | Cause |
 |---|---|
+| On KDE, looks identical with and without the shim | KDE's display profile is probably set to `None`, so the shim is mirroring sRGB back on purpose. See section 3 |
 | Looks identical with and without the shim | The app is on XWayland. Force Wayland with `GDK_BACKEND=wayland` (GTK) or `QT_QPA_PLATFORM=wayland` (Qt) |
 | "color management is OFF" notification | The compositor rejected your space or intent. Check `wayland-info` for what it accepts |
 | App opens but the shim has no effect | Single-instance app: your launch handed off to a copy that's already running. Close it first, or use the app's flag for this (`gimp --new-instance`) |
@@ -284,6 +289,39 @@ queued, and updated the moment it is.
 ```
 [cm-shim] declare: primaries=10 tf=2 (protocol enum values)
 [cm-shim] declared description ready (compositor id 32749)
+```
+
+## KDE with no display profile
+
+Set the display profile to `None` in KDE and color management does not turn off.
+KWin keeps the protocol up, says the output is plain sRGB, and converts
+everything into that for a monitor it assumes is sRGB. Declaring Adobe RGB into
+that makes your colors worse, not better. Hyprland drops the protocol entirely
+in the same situation, which the shim already detects and reports.
+
+So on KDE, declare mode asks the compositor what it prefers for each surface
+before declaring anything. The protocol only names the primaries when they're
+exactly one of its named sets, so an answer of `srgb` is KWin's own word for its
+own state - with a real profile loaded it sends your monitor's measured
+chromaticities and no name at all. When the answer is `srgb`, the shim sets that
+same description back on the surface instead of declaring. Nothing gets
+converted, which is what color management being off actually means.
+
+One line on stderr, once per launch, no notification:
+
+```
+[cm-shim] KDE has no display profile set (it prefers plain sRGB); mirroring that back instead of declaring
+```
+
+The shim re-asks whenever KWin says its preference changed, so loading a profile
+in System Settings, or dragging the window to a monitor that has one, switches it
+back to declaring without restarting the app.
+
+This gets one case wrong: a genuinely sRGB monitor with a real sRGB profile
+loaded, where KWin says `srgb` and means it. Turn the check off there:
+
+```ini
+assume_kde_srgb_is_unmanaged = 0
 ```
 
 ## Bypass mode
@@ -387,6 +425,8 @@ are interpreted in the declared space too.
 
 **KWin**
 
+- Doesn't turn color management off with the display profile set to `None`; it
+  claims sRGB and converts to it. Worked around, see section 3.
 - Won't take ICC files from clients.
 - No custom power curve.
 - Transfer functions limited to `gamma22`, `pq`, `ext_linear` and `bt1886`, which
