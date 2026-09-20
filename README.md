@@ -20,7 +20,7 @@ this will tell your compositor that darktable is using adobe_rgb. set adobeRGB a
 You will need:
 Rust -- for building, 
 notify-send lets cm-shim warn if color-management fails.
-wayland-info for cm-shim to check what color spaces your compositor supports.
+wayland-info to check what color spaces your compositor supports.
 
 **Arch**
 
@@ -86,7 +86,7 @@ An application renders its output to a color space that you set (e.g Adobe RGB) 
 ### Step 1: **Create a VCGT-less .icc profile with DisplayCAL**
 For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
 
- [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.][https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html]. 
+ [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
  his tutorial also works well under hyprland, if you set cm__enabled = false in your config.
 
 ```lua
@@ -125,12 +125,12 @@ cm-shim defaults to adobe-rgb. you can choose the intermediate color space you w
 cm-shim -s rec2020_g22 run <your application>
 ```
 
-For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles][https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc] as your application output space seems to work well. 
+For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles](https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc) as your application output space seems to work well. 
 In theory profiles with this large gamut might create some banding in applications that output color in 8 bit. I've yet to experience any banding myself.
 ### Step 4: **Set your application color space to the same color space you chose in step 3**
 IF COLOR SPACE SET IN cm-shim AND YOUR APPLICATION DO NOT MATCH, COLORS **WILL** BE INNACURATE, WITHOUT ANY WARNING.
 
-For colors to be correct when using cm-shim, the two settings have to be matching; what color space the app is outputting, and what the compositor expects the app to output. You set the color space in cm-shim, and set the same color space in the application.
+For colors to be correct when using cm-shim, these two settings have to be matching; what color space the app is outputting, and what the compositor expects the app to output. You set the color space in cm-shim, and set the same color space in the application.
 
 you can override cm-shims default in ~/.config/cm-shim/config
 any flag passed to cm-shim run or cm-shim install overrides the config.
@@ -168,6 +168,4 @@ This was entirely with Fable 5.1, mostly as a proof of concept, but it seems to 
 
 My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail, or how this shim really works under the hood. Im not proficient enough to review this code line by line, but i have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability.
 
-The delta E of darktable, gimp and firefox
-
-Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'wd want to maintain it? i would gfladly hand this project over. Its about 700 lines of code.
+Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'wd want to maintain it? I would gladly hand this project over. Its about 700 lines of code.
