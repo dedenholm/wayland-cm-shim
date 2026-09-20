@@ -20,7 +20,7 @@ this will tell your compositor that darktable is using adobe_rgb. set adobeRGB a
 You will need:
 Rust -- for building, 
 notify-send lets cm-shim warn if color-management fails.
-wayland-info for cm-shim to check what color spaces your compositor supports.
+wayland-info to check what color spaces your compositor supports.
 
 **Arch**
 
@@ -168,6 +168,4 @@ This was entirely with Fable 5.1, mostly as a proof of concept, but it seems to 
 
 My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail, or how this shim really works under the hood. Im not proficient enough to review this code line by line, but i have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability.
 
-The delta E of darktable, gimp and firefox
-
-Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'wd want to maintain it? i would gfladly hand this project over. Its about 700 lines of code.
+Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'wd want to maintain it? I would gladly hand this project over. Its about 700 lines of code.
