@@ -1,0 +1,7 @@
+# Build output. Reproducible from source, and ~190 MB of it.
+/target/
+
+# Editor and backup droppings
+*.rs.bk
+*~
+.*.sw[a-p]
