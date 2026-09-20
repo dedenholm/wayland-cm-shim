@@ -334,8 +334,10 @@ impl Ctx {
         // Some notification daemons parse the body for markup, and part of it
         // can be the compositor's own words.
         let body = body.replace(['<', '>'], "");
+        // -t is milliseconds, and only a hint: the spec lets a notification
+        // daemon ignore it, and some do.
         let _ = Command::new("notify-send")
-            .args(["-a", "cm-shim", "-u", "normal", "-i", "dialog-information"])
+            .args(["-a", "cm-shim", "-u", "normal", "-i", "dialog-information", "-t", "45000"])
             .arg(title)
             .arg(body)
             .spawn();
