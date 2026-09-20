@@ -28,6 +28,7 @@ use wl_proxy::protocols::ObjectInterface;
 use wl_proxy::protocols::color_management_v1::wp_color_management_surface_feedback_v1::*;
 use wl_proxy::protocols::color_management_v1::wp_color_management_surface_v1::*;
 use wl_proxy::protocols::color_management_v1::wp_color_manager_v1::*;
+use wl_proxy::protocols::color_management_v1::wp_image_description_info_v1::*;
 use wl_proxy::protocols::color_management_v1::wp_image_description_v1::*;
 use wl_proxy::protocols::wayland::wl_compositor::{WlCompositor, WlCompositorHandler};
 use wl_proxy::protocols::wayland::wl_display::{WlDisplay, WlDisplayHandler};
@@ -51,6 +52,10 @@ struct Config {
     intent: u32,    // protocol enum value
     /// True when no space was given anywhere and DEFAULT_SPACE was used.
     defaulted: bool,
+    /// Treat "the compositor prefers plain sRGB" as "colour management is
+    /// off", and mirror instead of declaring. Only ever true on KDE; see
+    /// `on_kde`.
+    kde_srgb_unmanaged: bool,
 }
 
 /// Used when neither the command line nor the config file names a space.
@@ -92,6 +97,34 @@ fn intent_by_name(s: &str) -> Option<u32> {
     })
 }
 
+/// Config file flags. Written out as 1 and 0, read a little more loosely.
+fn bool_by_name(s: &str) -> Option<bool> {
+    Some(match s {
+        "1" | "true" | "yes" | "on" => true,
+        "0" | "false" | "no" | "off" => false,
+        _ => return None,
+    })
+}
+
+/// KWin never switches its colour management off. With the display profile set
+/// to "None" it keeps wp_color_manager_v1 up, says the output is plain sRGB,
+/// and converts everything into that for a monitor it assumes is sRGB. So
+/// declaring adobe_rgb there is worse than declaring nothing: the compositor
+/// converts pixels for a display that isn't sRGB, and nothing says so.
+///
+/// Hyprland drops the protocol entirely in the same situation, which the shim
+/// already notices. On KDE there is nothing to notice until you ask what the
+/// compositor wants for a surface, so on KDE - and only on KDE - declare mode
+/// asks first, and hands the answer straight back if it says sRGB.
+///
+/// The one case this gets wrong is a real sRGB monitor with a real sRGB
+/// profile loaded, where KWin says sRGB and means it. That is what
+/// `assume_kde_srgb_is_unmanaged = 0` in the config file is for.
+fn on_kde() -> bool {
+    std::env::var("XDG_CURRENT_DESKTOP")
+        .is_ok_and(|v| v.split(':').any(|d| d.eq_ignore_ascii_case("KDE")))
+}
+
 fn die(msg: &str) -> ! {
     eprintln!("[cm-shim] {msg}");
     std::process::exit(1);
@@ -126,6 +159,7 @@ struct Layer {
     primaries: Option<String>,
     tf: Option<String>,
     intent: Option<String>,
+    kde_srgb: Option<String>,
 }
 
 impl Layer {
@@ -135,6 +169,7 @@ impl Layer {
             "primaries" => &mut self.primaries,
             "tf" => &mut self.tf,
             "intent" => &mut self.intent,
+            "assume_kde_srgb_is_unmanaged" => &mut self.kde_srgb,
             _ => die(&format!("unknown setting '{key}'")),
         };
         *slot = Some(v.to_string());
@@ -165,6 +200,7 @@ impl Layer {
 ///   space     = display | adobe_rgb | rec2020_g22 | ...      (bundled)
 ///   primaries = bt2020 ...  and  tf = gamma22 ...            (manual, both)
 ///   intent    = perceptual | relative | relative_bpc | absolute
+///   assume_kde_srgb_is_unmanaged = 1 | 0                     (KDE only)
 fn load_file_layer() -> Layer {
     let mut layer = Layer::default();
     let base = std::env::var("XDG_CONFIG_HOME")
@@ -194,7 +230,16 @@ fn resolve(file: &Layer, flags: &Layer) -> Config {
         Some(i) => intent_by_name(i).unwrap_or_else(|| die(&format!("unknown intent '{i}'"))),
         None => 0,
     };
-    Config { mode, primaries, tf, intent, defaulted }
+    // Off KDE there is nothing to work around, so the setting is ignored
+    // rather than obeyed: no other compositor lies about this.
+    let kde_srgb_unmanaged = on_kde()
+        && match flags.kde_srgb.as_ref().or(file.kde_srgb.as_ref()) {
+            Some(v) => bool_by_name(v).unwrap_or_else(|| {
+                die(&format!("assume_kde_srgb_is_unmanaged takes 1 or 0, not '{v}'"))
+            }),
+            None => true,
+        };
+    Config { mode, primaries, tf, intent, defaulted, kde_srgb_unmanaged }
 }
 
 /// Say it out loud: a wrong space is invisible until you measure it, and the
@@ -205,6 +250,17 @@ fn announce_default() {
     eprintln!("[cm-shim] using the default: {DEFAULT_SPACE}.");
     eprintln!("[cm-shim] set your app's display profile to Adobe RGB (1998) to match,");
     eprintln!("[cm-shim] or choose another space with -s (see --help).");
+}
+
+/// Once per launch, on stderr only. This is a compositor quirk, not a failure:
+/// colour management is still on, it simply has nothing left to do. Nobody
+/// needs a notification about it.
+fn announce_kde_srgb() {
+    static TOLD: AtomicBool = AtomicBool::new(false);
+    if TOLD.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    eprintln!("[cm-shim] KDE has no display profile set (it prefers plain sRGB); mirroring that back instead of declaring");
 }
 
 // --------------------------------------------------- per-connection state ---
@@ -403,6 +459,23 @@ fn apply_now(surface: &Rc<WlSurface>) {
     }
 }
 
+/// declare mode: set the configured description on a surface, or queue the
+/// surface until it is ready. The same two cases as at surface creation, but a
+/// round trip later, so this one commits too: the app may already be idle.
+fn declare_on(ctx: &Rc<Ctx>, cm: &Rc<WpColorManagementSurfaceV1>, surface: &Rc<WlSurface>) {
+    if let Some(desc) = ctx.declared.borrow().as_ref() {
+        cm.send_set_image_description(desc, intent(&ctx.cfg));
+        apply_now(surface);
+        return;
+    }
+    // preferred_changed can bring us back here before the description is
+    // ready. Queueing the same surface twice would set and commit it twice.
+    let mut waiting = ctx.waiting.borrow_mut();
+    if !waiting.iter().any(|(_, s)| Rc::ptr_eq(s, surface)) {
+        waiting.push((cm.clone(), surface.clone()));
+    }
+}
+
 struct Compositor {
     ctx: Rc<Ctx>,
 }
@@ -421,11 +494,13 @@ impl WlCompositorHandler for Compositor {
         let mut feedback = None;
         let alive = Rc::new(Cell::new(true));
         match self.ctx.cfg.mode {
-            Mode::Declare => match self.ctx.declared.borrow().as_ref() {
+            // On KDE, declare mode takes the feedback path as well: it has to
+            // see the compositor's answer before it can declare. See on_kde().
+            Mode::Declare if !self.ctx.cfg.kde_srgb_unmanaged => match self.ctx.declared.borrow().as_ref() {
                 Some(desc) => cm.send_set_image_description(desc, intent(&self.ctx.cfg)),
                 None => self.ctx.waiting.borrow_mut().push((cm.clone(), id.clone())),
             },
-            Mode::Bypass => {
+            _ => {
                 let fb = mgr.new_send_get_surface_feedback(id);
                 fb.set_forward_to_client(false);
                 fb.set_handler(Feedback { ctx: self.ctx.clone(), cm: cm.clone(), surface: id.clone(), alive: alive.clone() });
@@ -481,6 +556,21 @@ impl WpImageDescriptionV1Handler for MirrorDesc {
             slf.send_destroy();
             return;
         }
+        // Declare mode only reaches this handler on KDE. Ask what the
+        // description is made of before deciding whether declaring is safe.
+        if self.ctx.cfg.mode == Mode::Declare {
+            let info = slf.new_send_get_information();
+            info.set_forward_to_client(false);
+            info.set_handler(PreferredInfo {
+                ctx: self.ctx.clone(),
+                cm: self.cm.clone(),
+                surface: self.surface.clone(),
+                desc: slf.clone(),
+                alive: self.alive.clone(),
+                srgb: false,
+            });
+            return; // PreferredInfo destroys the description once it answers
+        }
         self.cm.send_set_image_description(slf, intent(&self.ctx.cfg));
         apply_now(&self.surface);
         eprintln!("[cm-shim] surface <- compositor description id {identity}");
@@ -489,6 +579,54 @@ impl WpImageDescriptionV1Handler for MirrorDesc {
     fn handle_failed(&mut self, slf: &Rc<WpImageDescriptionV1>, _cause: WpImageDescriptionV1Cause, msg: &str) {
         eprintln!("[cm-shim] could not get preferred description: {msg}");
         slf.send_destroy();
+        // Declare mode still owes this surface a description.
+        if self.ctx.cfg.mode == Mode::Declare && self.alive.get() {
+            declare_on(&self.ctx, &self.cm, &self.surface);
+        }
+    }
+}
+
+/// KDE, declare mode: what the compositor's preferred description is made of.
+///
+/// The protocol sends primaries_named only when the primaries are exactly one
+/// of its named sets, so `srgb` here is the compositor's own word for its own
+/// state and not something the shim inferred: with a real profile loaded KWin
+/// sends measured chromaticities and no name at all. The shim therefore still
+/// holds no colorimetric values, and never reads the `primaries` event.
+struct PreferredInfo {
+    ctx: Rc<Ctx>,
+    cm: Rc<WpColorManagementSurfaceV1>,
+    surface: Rc<WlSurface>,
+    /// The preferred description itself, kept alive until the answer is in.
+    desc: Rc<WpImageDescriptionV1>,
+    alive: Rc<Cell<bool>>,
+    srgb: bool,
+}
+
+impl WpImageDescriptionInfoV1Handler for PreferredInfo {
+    fn handle_primaries_named(&mut self, _slf: &Rc<WpImageDescriptionInfoV1>, v: WpColorManagerV1Primaries) {
+        self.srgb = v == WpColorManagerV1Primaries::SRGB;
+    }
+
+    /// `done` is a destructor event and wl-proxy has already dropped the info
+    /// object by the time this runs, so only the description is ours to free.
+    fn handle_done(&mut self, _slf: &Rc<WpImageDescriptionInfoV1>) {
+        // The compositor may have failed the configured space while this was
+        // in flight; an unmanaged connection stays unmanaged.
+        if self.alive.get() && !self.ctx.unmanaged.get() {
+            if self.srgb {
+                // KWin is going to convert whatever we declare into sRGB, for
+                // a monitor it assumes is sRGB. Handing its own description
+                // back is the identity transform: what bypass mode does, and
+                // the same result Hyprland gives by dropping the protocol.
+                self.cm.send_set_image_description(&self.desc, intent(&self.ctx.cfg));
+                apply_now(&self.surface);
+                announce_kde_srgb();
+            } else {
+                declare_on(&self.ctx, &self.cm, &self.surface);
+            }
+        }
+        self.desc.send_destroy();
     }
 }
 
