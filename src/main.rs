@@ -89,12 +89,21 @@ fn space_by_name(s: &str) -> Option<(u32, u32)> {
     })
 }
 
-fn intent_by_name(s: &str) -> Option<u32> {
-    Some(match s {
-        "perceptual" => 0, "relative" => 1, "saturation" => 2, "absolute" => 3,
-        "relative_bpc" => 4,
-        _ => return None,
-    })
+const INTENTS: &[(&str, u32)] = &[
+    ("perceptual", 0), ("relative", 1), ("saturation", 2), ("absolute", 3),
+    ("relative_bpc", 4),
+];
+
+/// Name to protocol enum value. Unknown names are the caller's problem.
+fn by_name(table: &[(&str, u32)], s: &str) -> Option<u32> {
+    table.iter().find(|(n, _)| *n == s).map(|(_, v)| *v)
+}
+
+/// Protocol enum value back to a name, for messages: `adobe_rgb` tells the
+/// user something, `10` does not. The first name listed for a value wins, and
+/// a value that isn't in the table prints as its number rather than a guess.
+fn by_value(table: &[(&str, u32)], v: u32) -> String {
+    table.iter().find(|(_, x)| *x == v).map_or_else(|| v.to_string(), |(n, _)| n.to_string())
 }
 
 /// Config file flags. Written out as 1 and 0, read a little more loosely.
@@ -131,28 +140,22 @@ fn die(msg: &str) -> ! {
 }
 
 /// Manual definition: the protocol's own names, passed straight through.
-fn primaries_by_name(s: &str) -> Option<u32> {
-    Some(match s {
-        "srgb" => 1, "pal_m" => 2, "pal" => 3, "ntsc" => 4, "generic_film" => 5,
-        "bt2020" => 6, "cie1931_xyz" => 7, "dci_p3" => 8, "display_p3" => 9,
-        "adobe_rgb" => 10,
-        _ => return None,
-    })
-}
+const PRIMARIES: &[(&str, u32)] = &[
+    ("srgb", 1), ("pal_m", 2), ("pal", 3), ("ntsc", 4), ("generic_film", 5),
+    ("bt2020", 6), ("cie1931_xyz", 7), ("dci_p3", 8), ("display_p3", 9),
+    ("adobe_rgb", 10),
+];
 
 /// The shim binds protocol version 1, so these are the version 1 names.
 /// `pq` is accepted as shorthand for `st2084_pq`.
-fn tf_by_name(s: &str) -> Option<u32> {
-    Some(match s {
-        "bt1886" => 1, "gamma22" => 2, "gamma28" => 3, "st240" => 4,
-        "ext_linear" => 5, "log_100" => 6, "log_316" => 7, "xvycc" => 8,
-        "srgb" => 9, "ext_srgb" => 10, "st2084_pq" | "pq" => 11, "st428" => 12,
-        "hlg" => 13,
-        _ => return None,
-    })
-}
+const TRANSFER_FUNCTIONS: &[(&str, u32)] = &[
+    ("bt1886", 1), ("gamma22", 2), ("gamma28", 3), ("st240", 4),
+    ("ext_linear", 5), ("log_100", 6), ("log_316", 7), ("xvycc", 8),
+    ("srgb", 9), ("ext_srgb", 10), ("st2084_pq", 11), ("pq", 11), ("st428", 12),
+    ("hlg", 13),
+];
 
-/// One source of settings: the config file, or the command line.
+///Sources of settings: the config file, or the command line.
 #[derive(Default)]
 struct Layer {
     space: Option<String>,
@@ -187,8 +190,8 @@ impl Layer {
             }
             (None, Some(p), Some(t)) => Some((
                 Mode::Declare,
-                primaries_by_name(p).unwrap_or_else(|| die(&format!("unknown primaries '{p}'"))),
-                tf_by_name(t).unwrap_or_else(|| die(&format!("unknown transfer function '{t}'"))),
+                by_name(PRIMARIES, p).unwrap_or_else(|| die(&format!("unknown primaries '{p}'"))),
+                by_name(TRANSFER_FUNCTIONS, t).unwrap_or_else(|| die(&format!("unknown transfer function '{t}'"))),
             )),
             (Some(_), _, _) => die("give either a space, or primaries plus tf, not both"),
             _ => die("primaries and tf must be given together"),
@@ -227,7 +230,7 @@ fn resolve(file: &Layer, flags: &Layer) -> Config {
         (Mode::Declare, p, t)
     });
     let intent = match flags.intent.as_ref().or(file.intent.as_ref()) {
-        Some(i) => intent_by_name(i).unwrap_or_else(|| die(&format!("unknown intent '{i}'"))),
+        Some(i) => by_name(INTENTS, i).unwrap_or_else(|| die(&format!("unknown intent '{i}'"))),
         None => 0,
     };
     // Off KDE there is nothing to work around, so the setting is ignored
@@ -271,10 +274,27 @@ struct Ctx {
 /// Name of the app being run, for messages.
 static APP: OnceLock<String> = OnceLock::new();
 
+/// Why the shim is declaring nothing. These are two different situations and
+/// the user is told so: a compositor that never offered the protocol is a
+/// setup, not a fault - people switch colour management off on purpose so the
+/// app can own the conversion - while being refused after asking means the
+/// colours on screen are not the ones that were configured.
+enum Unmanaged<'a> {
+    NoProtocol,
+    Refused { reason: &'a str, fix: &'a str },
+}
+
+/// Advice for the two kinds of refusal. `wayland-info` prints the lists the
+/// compositor will accept.
+const PICK_A_SPACE: &str = "Please pick a space this compositor supports.";
+const PICK_AN_INTENT: &str = "Please pick a render intent this compositor supports.";
+
 impl Ctx {
-    /// Start unmanaged, visibly: never leave the app silently mis-declared,
-    /// and never leave the user guessing why colors look different.
-    fn go_unmanaged(&self, reason: &str) {
+    /// Say what the shim did and why, and stop there. All it can see is
+    /// whether its own declaration went through - not whether the compositor
+    /// is managing colour, and not what the app was set to - so it claims
+    /// neither.
+    fn go_unmanaged(&self, what: Unmanaged<'_>) {
         self.unmanaged.set(true);
         self.waiting.borrow_mut().clear();
         static TOLD: AtomicBool = AtomicBool::new(false); // an app may connect many times
@@ -282,11 +302,42 @@ impl Ctx {
             return;
         }
         let app = APP.get().map(String::as_str).unwrap_or("the app");
-        eprintln!("[cm-shim] {app} is running WITHOUT color management: {reason}");
+        let (title, body) = match what {
+            Unmanaged::NoProtocol => {
+                eprintln!("[cm-shim] not declaring a color space for {app}: the compositor doesn't seem to offer wp_color_manager_v1.");
+                eprintln!("[cm-shim] its windows go to the compositor undeclared, like any app that doesn't speak the protocol.");
+                eprintln!("[cm-shim] if that's deliberate, set {app}'s display profile to your monitor's ICC and it handles color itself.");
+                (
+                    format!("cm-shim is not declaring a color space for {app}"),
+                    format!(
+                        "The compositor doesn't seem to offer wp_color_manager_v1, so there's nothing to declare to. \
+                         If color management is off on purpose, this is the expected result: set {app}'s display \
+                         profile to your monitor's ICC and it handles color itself."
+                    ),
+                )
+            }
+            Unmanaged::Refused { reason, fix } => {
+                eprintln!("[cm-shim] could not declare a color space for {app}: {reason}.");
+                eprintln!("[cm-shim] {fix}");
+                eprintln!("[cm-shim] {app}'s color space is currently not defined, so the compositor will most likely assume sRGB.");
+                eprintln!("[cm-shim] if {app}'s display profile is set to anything other than sRGB, its colors will be wrong.");
+                (
+                    format!("cm-shim could not declare a color space for {app}"),
+                    format!(
+                        "{reason}. {fix}\n\n{app}'s color space is currently not defined, so the compositor will \
+                         most likely assume sRGB. If {app}'s display profile is set to anything other than sRGB, \
+                         its colors will be wrong."
+                    ),
+                )
+            }
+        };
+        // Some notification daemons parse the body for markup, and part of it
+        // can be the compositor's own words.
+        let body = body.replace(['<', '>'], "");
         let _ = Command::new("notify-send")
-            .args(["-a", "cm-shim", "-u", "critical", "-i", "dialog-warning"])
-            .arg(format!("{app}: color management is OFF"))
-            .arg(format!("{reason}. The app is running unmanaged for this session."))
+            .args(["-a", "cm-shim", "-u", "normal", "-i", "dialog-information"])
+            .arg(title)
+            .arg(body)
             .spawn();
     }
 }
@@ -396,14 +447,37 @@ impl WpColorManagerV1Handler for Manager {
     fn handle_done(&mut self, slf: &Rc<WpColorManagerV1>) {
         let cfg = &self.ctx.cfg;
         if !self.intent_ok {
-            return self.ctx.go_unmanaged("the compositor does not support the configured render intent");
+            let reason = format!(
+                "the compositor didn't list the {} render intent as available",
+                by_value(INTENTS, cfg.intent)
+            );
+            return self.ctx.go_unmanaged(Unmanaged::Refused { reason: &reason, fix: PICK_AN_INTENT });
         }
         if cfg.mode == Mode::Bypass {
             eprintln!("[cm-shim] bypass: mirroring the compositor's preferred image description");
             return;
         }
-        if !self.parametric || !self.primaries_ok || !self.tf_ok {
-            return self.ctx.go_unmanaged("the compositor does not support the configured color space");
+        // Three different failures. Saying which one it was is the whole
+        // point of the message.
+        if !self.parametric {
+            return self.ctx.go_unmanaged(Unmanaged::Refused {
+                reason: "the compositor didn't list parametric image descriptions as available",
+                fix: "cm-shim can only declare a space that way, so there is nothing to change in your configuration.",
+            });
+        }
+        if !self.primaries_ok {
+            let reason = format!(
+                "the compositor didn't list the {} primaries as available",
+                by_value(PRIMARIES, cfg.primaries)
+            );
+            return self.ctx.go_unmanaged(Unmanaged::Refused { reason: &reason, fix: PICK_A_SPACE });
+        }
+        if !self.tf_ok {
+            let reason = format!(
+                "the compositor didn't list the {} transfer function as available",
+                by_value(TRANSFER_FUNCTIONS, cfg.tf)
+            );
+            return self.ctx.go_unmanaged(Unmanaged::Refused { reason: &reason, fix: PICK_A_SPACE });
         }
         let creator = slf.new_send_create_parametric_creator();
         creator.set_forward_to_client(false);
@@ -431,7 +505,15 @@ impl WpImageDescriptionV1Handler for DeclaredDesc {
         *self.ctx.declared.borrow_mut() = Some(slf.clone());
     }
     fn handle_failed(&mut self, _slf: &Rc<WpImageDescriptionV1>, _cause: WpImageDescriptionV1Cause, msg: &str) {
-        self.ctx.go_unmanaged(&format!("the compositor rejected the color space ({msg})"));
+        // The compositor's own words, trimmed to sit inside a sentence. It is
+        // allowed to send nothing at all.
+        let msg = msg.trim().trim_end_matches('.').trim();
+        let reason = if msg.is_empty() {
+            "the compositor rejected the description".to_string()
+        } else {
+            format!("the compositor rejected the description. {msg}")
+        };
+        self.ctx.go_unmanaged(Unmanaged::Refused { reason: &reason, fix: PICK_A_SPACE });
     }
 }
 
@@ -476,7 +558,7 @@ impl WlCompositorHandler for Compositor {
             return;
         }
         let Some(mgr) = self.ctx.mgr.borrow().clone() else {
-            return self.ctx.go_unmanaged("the compositor has no color management protocol, if this is expected, set your app to your monitors .icc profile");
+            return self.ctx.go_unmanaged(Unmanaged::NoProtocol);
         };
         let cm = mgr.new_send_get_surface(id);
         cm.set_forward_to_client(false);
