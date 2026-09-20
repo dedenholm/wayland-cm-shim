@@ -219,7 +219,8 @@ correctly on other compositors, but it's not where you should start.
 |---|---|
 | On KDE, looks identical with and without the shim | KDE's display profile is probably set to `None`, so the shim is mirroring sRGB back on purpose. See section 3 |
 | Looks identical with and without the shim | The app is on XWayland. Force Wayland with `GDK_BACKEND=wayland` (GTK) or `QT_QPA_PLATFORM=wayland` (Qt) |
-| "color management is OFF" notification | The compositor rejected your space or intent. Check `wayland-info` for what it accepts |
+| "cm-shim could not declare a color space" notification | The compositor refused what you configured; the message names which part. Check `wayland-info` for what it accepts |
+| "cm-shim is not declaring a color space" notification | The compositor offers no color management protocol. Expected if you turned it off on purpose — set the app's display profile to your monitor's ICC |
 | App opens but the shim has no effect | Single-instance app: your launch handed off to a copy that's already running. Close it first, or use the app's flag for this (`gimp --new-instance`) |
 
 ---
@@ -359,15 +360,38 @@ object the compositor handed it in the first place. So the shim can't introduce 
 color error of its own. Any error you measure belongs to the app or the
 compositor.
 
-## When it can't
+## When it declares nothing
 
-The shim gives up, visibly, if the compositor has no color management protocol, if
-it doesn't support your render intent, if it doesn't support your primaries or
-transfer function, or if it rejects the description after the fact.
+Two different situations, and the shim tells you which one you're in.
 
-In all four cases the app still starts, but unmanaged. You get a desktop
-notification and a line on stderr, once per launch. Quietly handing you
-nearly-right colors would be worse than handing you none.
+**The compositor doesn't offer the protocol.** There's nothing to declare to,
+and nothing has gone wrong — this is what you get when color management is
+switched off on purpose so the app can own the conversion. The app's windows go
+to the compositor undeclared, like any app that doesn't speak the protocol.
+
+```
+cm-shim is not declaring a color space for darktable
+```
+
+**The shim asked and was refused.** The compositor didn't list your primaries,
+transfer function or render intent; or it can't build image descriptions from
+parameters at all; or it rejected the description after the fact. The message
+names which of those happened, and which value it choked on.
+
+```
+cm-shim could not declare a color space for darktable
+the compositor didn't list the adobe_rgb primaries as available.
+```
+
+Either way the app still starts, and you get a desktop notification plus a few
+lines on stderr, once per launch. Neither is urgent — nothing is crashing, these
+are colors — so both arrive at normal priority.
+
+What the messages deliberately don't tell you is whether the compositor is
+managing color, or whether the app is. The shim can only see whether its own
+declaration went through; anything else would be a guess. What it can say is
+that an undeclared window will most likely be treated as sRGB, so if the app's
+display profile is set to anything else, the colors on screen are wrong.
 
 For the full protocol traffic, run with `WL_PROXY_DEBUG=1`.
 
