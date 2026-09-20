@@ -164,8 +164,14 @@ cm-shim install and uninstall will refuse to touch any .desktop file that doesn'
 
 # AI Disclaimer
 
-This was entirely with Fable 5.1, mostly as a proof of concept, but it seems to be working better than i expected.
+This was made entirely with Fable 5.1, mostly as a proof of concept, but it seems to be working better than i expected.
 
-My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail, or how this shim really works under the hood. Im not proficient enough to review this code line by line, but i have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability.
+My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail, or how this shim really works under the hood. As ive been working on it, im starting to get a understanding of how all of this work. However, Im not proficient enough to review this code line by line. 
 
-Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'wd want to maintain it? I would gladly hand this project over. Its about 700 lines of code.
+I have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability.
+
+Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'd want to maintain it? I would gladly hand this project over. Its about 900 lines of code.
+
+#Verifying it:
+
+
