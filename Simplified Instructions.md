@@ -1,4 +1,4 @@
-#Simplified Instructions
+# Simplified Instructions
 
 ### 1: Download and install.
 **Arch**
