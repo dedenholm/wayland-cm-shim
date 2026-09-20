@@ -14,6 +14,9 @@ cm-shim run darktable
 ```
 
 this will tell your compositor that darktable is using adobe_rgb. set adobeRGB as your display profile in darktable and you have the first part of a color managed pipeline.
+
+[You can also find simplified setup instructions for quick reference here](https://github.com/dedenholm/wayland-cm-shim/blob/main/Simplified%20Instructions.md) 
+
 ## Install:
 ### Dependencies:
 
