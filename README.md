@@ -197,6 +197,10 @@ Corrections from people who know Wayland internals are very welcome. If you are 
 
 I have a Calibrite Display Pro HL colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability:
 
+I've done a few tests to verify that the method to create a VCGT less .icc from Xavier Hugl's blog works. 
+Running DisplayCal's measurement report function in kde plasma and hyprland, with color management off, and under windows, yields equivalent results.
+
+
 ### The test:
 I've used spotread to compare 21 color-patches between darktable handling its own color profile under kde with color management off, and darktable running through cm-shim with kde color management off. 
 
