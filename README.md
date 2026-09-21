@@ -90,7 +90,7 @@ An application renders its output to a color space that you set (e.g Adobe RGB) 
 For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
 
  [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
- his tutorial also works well under hyprland, if you set cm__enabled = false in your config.
+ his tutorial also works well under hyprland, if you set cm__enabled = false in your config and **restart your session** before profiling.
 
 ```lua
 render = {
