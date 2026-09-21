@@ -10,9 +10,6 @@
 //! The shim contains NO colour math and NO colorimetric values.
 //!   bypass : hands the compositor's own image-description object back to it.
 //!   declare: passes protocol enum names (primaries + transfer function) through.
-//!
-//! NOTE: written against the wl-proxy 0.1.4 docs without a compiler at hand.
-//! Spots that are educated guesses at the generated API are marked `GUESS:`.
 
 use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
@@ -234,7 +231,7 @@ fn resolve(file: &Layer, flags: &Layer) -> Config {
         None => 0,
     };
     // Off KDE there is nothing to work around, so the setting is ignored
-    // rather than obeyed: no other compositor lies about this.
+    // rather than obeyed
     let kde_srgb_unmanaged = on_kde()
         && match flags.kde_srgb.as_ref().or(file.kde_srgb.as_ref()) {
             Some(v) => bool_by_name(v).unwrap_or_else(|| {
@@ -245,7 +242,7 @@ fn resolve(file: &Layer, flags: &Layer) -> Config {
     Config { mode, primaries, tf, intent, defaulted, kde_srgb_unmanaged }
 }
 
-/// Say it out loud: a wrong space is invisible until you measure it, and the
+/// a wrong space is invisible until you measure it, and the
 /// user has to set the matching profile in the app for any of this to be true.
 fn announce_default() {
     eprintln!("[cm-shim] no space given on the command line or in {}/cm-shim/config;",
@@ -290,10 +287,7 @@ const PICK_A_SPACE: &str = "Please pick a space this compositor supports.";
 const PICK_AN_INTENT: &str = "Please pick a render intent this compositor supports.";
 
 impl Ctx {
-    /// Say what the shim did and why, and stop there. All it can see is
-    /// whether its own declaration went through - not whether the compositor
-    /// is managing colour, and not what the app was set to - so it claims
-    /// neither.
+    /// Say what the shim did and why,
     fn go_unmanaged(&self, what: Unmanaged<'_>) {
         self.unmanaged.set(true);
         self.waiting.borrow_mut().clear();
@@ -334,8 +328,7 @@ impl Ctx {
         // Some notification daemons parse the body for markup, and part of it
         // can be the compositor's own words.
         let body = body.replace(['<', '>'], "");
-        // -t is milliseconds, and only a hint: the spec lets a notification
-        // daemon ignore it, and some do.
+        // Let the Notification linger, so the user has time to read it.
         let _ = Command::new("notify-send")
             .args(["-a", "cm-shim", "-u", "normal", "-i", "dialog-information", "-t", "45000"])
             .arg(title)
@@ -507,8 +500,7 @@ impl WpImageDescriptionV1Handler for DeclaredDesc {
         *self.ctx.declared.borrow_mut() = Some(slf.clone());
     }
     fn handle_failed(&mut self, _slf: &Rc<WpImageDescriptionV1>, _cause: WpImageDescriptionV1Cause, msg: &str) {
-        // The compositor's own words, trimmed to sit inside a sentence. It is
-        // allowed to send nothing at all.
+        // The compositor's own words, trimmed to sit inside a sentence.
         let msg = msg.trim().trim_end_matches('.').trim();
         let reason = if msg.is_empty() {
             "the compositor rejected the description".to_string()
