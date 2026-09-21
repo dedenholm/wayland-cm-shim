@@ -57,7 +57,7 @@ script asks if you want to put it in `/usr/local/bin` instead. For this, it will
 
 It also writes a fully commented config to `~/.config/cm-shim/config`. Everything
 in it is commented out, so it changes nothing until you edit it.
-Any flags 
+Any flags passed to the binary overrides the config.
 ### To remove the binary and every launcher cm-shim made:
 
 ```sh
