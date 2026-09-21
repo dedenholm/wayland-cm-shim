@@ -122,7 +122,7 @@ run your application with
 cm-shim run <your application>
 ```
 
-cm-shim defaults to adobe-rgb. you can choose the intermediate color space you want to use with the -s option. you can find what color spaces are available in ~/.config/cm-shim/config
+cm-shim defaults to adobe-rgb. you can choose the intermediate color space you want to use with the -s option. you can find what premade color spaces are available in ~/.config/cm-shim/config
 
 ```
 cm-shim -s rec2020_g22 run <your application>
