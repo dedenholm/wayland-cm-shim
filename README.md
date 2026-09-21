@@ -204,7 +204,7 @@ I've used spotread to compare 21 color-patches between darktable handling its ow
 
 colverify reports an average ΔE*2k of 0.374028, and a peak of 0.929470, between the two pipelines.
 
-For details you can peruse the methodology document in the verify folder. 
+For details, you can peruse the verify folder, and the methodology document. 
 
 **If you have any specific tests you would like me to run: Tell me!**
 
