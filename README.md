@@ -5,7 +5,7 @@
 This seem to work well under KDE Plasma.
 hyprland clamps all apps to sRGB, when you use an icc profile, so the usefulness of  cm-shim is limited. It can help your apps keep correct sRGB colors under hyprland, while having your apps setup for wide gamut work in other DEs/sessions. 
 
- ~~ I've  ~~  I will detail ~~ ed ~~  some approaches to get correct wide gamut colors under hyprland in the setup section of this readme, soon.
+ ~~I've~~  I *will* detail~~ed~~  some approaches to get correct wide gamut colors under hyprland in the setup section of this readme, soon.
 
 ### The simplest way to use cm-shim:
 
