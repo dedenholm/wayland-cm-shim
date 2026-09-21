@@ -83,10 +83,16 @@ source "$HOME/.cargo/env"
 
 # Setup:
 
+
+
 **A short summary of how this works:**
+
 An application renders its output to a color space that you set (e.g Adobe RGB) --> you configure cm-shim to tell the compositor what color space the window is rendering in --> the compositor uses this information to transform the application output space, to the color space of your monitor.
 
-### Step 1: **Create a VCGT-less .icc profile with DisplayCAL**
+
+
+## Step 1: **Create a VCGT-less .icc profile with DisplayCAL**
+
 For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
 
  [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
@@ -98,15 +104,16 @@ render = {
 }
 ```
 
-### Step 2: **Set your compositor color profile to your monitors VCGT-less .icc**
-In KDE: System settings > Display Configuration > Color profile;
+## Step 2: **Set your compositor color profile to your monitors VCGT-less .icc**
+
+In KDE: System settings > Display Configuration > Color profile 
 
 
 In Hyprland:
 ```lua
 hl.monitor({
-    output      = "DP-1",
-    mode        = "2560x1440@360",
+    output      = "<which monitor>",
+    mode        = "<resolution>@<update frequency>",
     position    = "0x0",
     scale       = 1,
     bitdepth    = 10,
@@ -115,7 +122,7 @@ hl.monitor({
 	)}
 ```
 
-### Step 3: **open your application through cm-shim to the color space of your choice, or leave it at default; AdobeRGB**
+## Step 3: **open your application through cm-shim to the color space of your choice, or leave it at default; AdobeRGB**
 
 run your application with
 ```
@@ -138,7 +145,7 @@ For colors to be correct when using cm-shim, these two settings have to be match
 you can override cm-shims default in ~/.config/cm-shim/config
 any flag passed to cm-shim run or cm-shim install overrides the config.
 
-### Step 5: **Make it persistent**
+## Step 5: **Make it persistent**
 
 ```sh
 cm-shim install <your application>
@@ -165,16 +172,13 @@ cm-shim uninstall <your application>
 cm-shim install and uninstall will refuse to touch any .desktop file that doesn't carry a `# cm-shim override of /usr/share/applications/` tag. this is to make sure it doesn't mess with any overrides you have created yourself. 
 
 
-# AI Disclaimer
+# AI Disclaimer:
 
 This was made entirely with Fable 5.1, mostly as a proof of concept, but it seems to be working better than i expected.
 
-My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail, or how this shim really works under the hood. As ive been working on it, im starting to get a understanding of how all of this work. However, Im not proficient enough to review this code line by line. 
+My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail. As I've been working on it, I'm starting to get a understanding of how all of this work. However, I'm not proficient enough in Rust to review this code line by line. 
 
-I have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability.
+I have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability. See the methodology document in the verify folder. If you have any specific tests you would like me to run: Tell me!
 
 Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'd want to maintain it? I would gladly hand this project over. Its about 900 lines of code.
-
-#Verifying it:
-
 
