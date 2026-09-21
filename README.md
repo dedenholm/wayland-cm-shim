@@ -191,7 +191,21 @@ This was made entirely with Fable 5.1, mostly as a proof of concept, but it seem
 
 My knowledge of Rust is pretty basic, and I have no idea of how Wayland protocols actually work in detail. As I've been working on it, I'm starting to get a understanding of how all of this work. However, I'm not proficient enough in Rust to review this code line by line. 
 
-I have a colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability. See the methodology document in the verify folder. If you have any specific tests you would like me to run: Tell me!
-
 Corrections from people who know Wayland internals are very welcome. If you are proficient in rust and find this tool useful, maybe you'd want to maintain it? I would gladly hand this project over. Its about 900 lines of code.
+
+# Verifying That this works:
+
+I have a Calibrite Display Pro HL colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability:
+
+### The test:
+I've compared 21 color-patches between darktable handling its own color profile under kde with color management off, and darktable running through cm-shim with kde color management off. 
+
+### The result:
+
+colverify reports an average ΔE*2k of 0.374028, and a peak of 0.929470.
+
+For details you can peruse the methodology document in the verify folder. 
+
+**If you have any specific tests you would like me to run: Tell me!**
+
 
