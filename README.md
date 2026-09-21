@@ -104,6 +104,8 @@ An application renders its output to a color space that you set (e.g Adobe RGB) 
 ## Step 1: **Create a VCGT-less .icc profile with DisplayCAL**
 
 If you have a factory calibrated monitor with a predefined color space mode, like a "DCI-P3" mode you can skip this step and load an .icc of that colorspace in your compositor. This will only be as correct as your monitors factory calibration.
+
+
 For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
 
  [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
