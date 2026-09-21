@@ -21,9 +21,12 @@ this will tell your compositor that darktable is using adobe_rgb. set adobeRGB a
 ### Dependencies:
 
 You will need:
-Rust -- for building, 
-notify-send lets cm-shim warn if color-management fails.
-wayland-info to check what color spaces your compositor supports.
+
+**Rust** -- for building, 
+
+**notify-send** lets cm-shim warn you if its color-management fails.
+
+**wayland-info** to check what color spaces your compositor supports.
 
 **Arch**
 
