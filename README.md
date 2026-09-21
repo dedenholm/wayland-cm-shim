@@ -55,12 +55,13 @@ cd cm-shim
 ./install.sh
 ```
 
-The install script puts the binary in `~/.local/bin/cm-shim`. If that isn't on your `PATH`, the
+The install script builds the binary and puts it in `~/.local/bin/cm-shim`. If that isn't on your `PATH`, the
 script asks if you want to put it in `/usr/local/bin` instead. For this, it will ask for `sudo` for that one copy.
 
 It also writes a fully commented config to `~/.config/cm-shim/config`. Everything
 in it is commented out, so it changes nothing until you edit it.
 Any flags passed to the binary overrides the config.
+
 ### To remove the binary and every launcher cm-shim made:
 
 ```sh
