@@ -198,11 +198,11 @@ Corrections from people who know Wayland internals are very welcome. If you are 
 I have a Calibrite Display Pro HL colorimeter and have tried to verify that this shim behaves as expected, to the best of my ability:
 
 ### The test:
-I've compared 21 color-patches between darktable handling its own color profile under kde with color management off, and darktable running through cm-shim with kde color management off. 
+I've used spotread to compare 21 color-patches between darktable handling its own color profile under kde with color management off, and darktable running through cm-shim with kde color management off. 
 
 ### The result:
 
-colverify reports an average ΔE*2k of 0.374028, and a peak of 0.929470.
+colverify reports an average ΔE*2k of 0.374028, and a peak of 0.929470, between the two pipelines.
 
 For details you can peruse the methodology document in the verify folder. 
 
