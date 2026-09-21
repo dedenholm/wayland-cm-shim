@@ -84,7 +84,7 @@ source "$HOME/.cargo/env"
 # Setup:
 
 **A short summary of how this works:**
-An application renders its output to a color space that you set (e.g Adobe RGB) --> cm-shim tells the compositor what color space the window is rendering in --> the compositor uses this information to transform the application working space, to the color space of your monitor.
+An application renders its output to a color space that you set (e.g Adobe RGB) --> you configure cm-shim to tell the compositor what color space the window is rendering in --> the compositor uses this information to transform the application working space, to the color space of your monitor.
 
 ### Step 1: **Create a VCGT-less .icc profile with DisplayCAL**
 For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
