@@ -28,6 +28,8 @@ You will need:
 
 **wayland-info** -- to check what color spaces your compositor supports.
 
+
+
 **Arch**
 
 ```sh
