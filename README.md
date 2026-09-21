@@ -7,7 +7,7 @@ hyprland clamps all apps to sRGB, when you use an icc profile, so the usefulness
 
  ~~I've detailed~~  I *will* detail some approaches to get correct wide gamut colors under hyprland in the setup section of this readme, soon.
 
-If you have any questions, suggestions for improvement, i will be happy to engage with you! 
+If you have any questions, or suggestions for improvement, i will be happy to engage with you! 
 
 If anything is unclear or confusing in my setup instructions **please let me know!** I have a goal to get setting up a color managed pipeline in Wayland Linux as straightforward and intelligible as possible, for as many people as possible -- regardless of technical expertise.
 
