@@ -56,8 +56,8 @@ sudo dnf install cargo gcc libnotify wayland-utils git
 ## Build, Install and Uninstall
 
 ```sh
-git clone <this repository>
-cd cm-shim
+git clone https://github.com/dedenholm/wayland-cm-shim/
+cd wayland-cm-shim
 ./install.sh
 ```
 
