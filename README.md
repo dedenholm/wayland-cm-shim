@@ -24,9 +24,9 @@ You will need:
 
 **Rust** -- for building, 
 
-**notify-send** lets cm-shim warn you if its color-management fails.
+**notify-send** -- lets cm-shim warn you if its color-management fails.
 
-**wayland-info** to check what color spaces your compositor supports.
+**wayland-info** -- to check what color spaces your compositor supports.
 
 **Arch**
 
