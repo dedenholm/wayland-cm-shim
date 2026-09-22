@@ -134,7 +134,7 @@ hl.monitor({
     bitdepth    = 10,
     vrr         = 0,
 	icc         = "/absolute/path/to/your/.icc"
-	)}
+	})
 ```
 
 ## Step 3: **open your application through cm-shim to the color space of your choice, or leave it at default; AdobeRGB**
