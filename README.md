@@ -106,7 +106,7 @@ An application renders its output to a color space that you set (e.g Adobe RGB) 
 If you have a factory calibrated monitor with a predefined color space mode, like a "DCI-P3" mode you can skip this step and load an .icc of that colorspace in your compositor. This will only be as correct as your monitors factory calibration.
 
 
-For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
+For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesn't have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.  (except KDE Plasma who can use VCGT profiles, but not create them, yet.)
 
  [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
  
@@ -119,7 +119,9 @@ render = {
 }
 ```
 
-## Step 2: **Set your compositor color profile to your monitors VCGT-less .icc**
+If you need a profile with vcgt calibration(if you're using a laptop you wont have any way to adjust your monitors whitepoint in hardware),  this is possible on  wayland with KDE Plasma only at this time. You will have to use an x11 session to create your profile, and load that profile in kde.
+
+## Step 2: **Set your compositor color profile to the profile you created in step 1:
 
 In KDE: System settings > Display Configuration > Color profile 
 
@@ -133,7 +135,7 @@ hl.monitor({
     scale       = 1,
     bitdepth    = 10,
     vrr         = 0,
-	icc         = "/absolute/path/to/your/.icc"
+	icc         = "</absolute/path/to/your/.icc>"
 	})
 ```
 
