@@ -154,9 +154,11 @@ cm-shim -s rec2020_g22 run <your application>
 you can override cm-shims default in ~/.config/cm-shim/config
 any flag passed to cm-shim run or cm-shim install overrides the config.
 
-For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles](https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc) as your application output space seems to work well and lets you utilize the full gamut range of your monitor. For firefox and zen-browser, since video playback bypasses firefox's color management, it will look very bad when interpreted as rec2020. id recommend using adobe_rgb instead, as a compromise.
+For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles](https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc) as your application output space seems to work well and lets you utilize the full gamut range of your monitor.
 
 In theory profiles with this large gamut might create some banding in applications that output color in 8 bit. I've yet to experience any banding myself.
+
+For firefox and zen-browser, since video playback bypasses firefox's color management, srgb skintones will look very bad when interpreted as rec2020. I'd recommend using adobe_rgb instead, as a compromise.
 
 ### Step 4: **Set your application color space to the same color space you chose in step 3**
 IF COLOR SPACE SET IN cm-shim AND YOUR APPLICATION DO NOT MATCH, COLORS **WILL** BE INNACURATE, WITHOUT ANY WARNING.
