@@ -121,7 +121,7 @@ render = {
 
 If you need a profile with vcgt calibration(if you're using a laptop you wont have any way to adjust your monitors whitepoint in hardware),  this is possible on  wayland with KDE Plasma only at this time. You will have to use an x11 session to create your profile, and load that profile in kde.
 
-## Step 2: **Set your compositor color profile to the profile you created in step 1:
+## Step 2: **Set your compositor color profile to the profile you created in step 1:**
 
 In KDE: System settings > Display Configuration > Color profile 
 
