@@ -513,11 +513,17 @@ impl WpImageDescriptionV1Handler for DeclaredDesc {
 
 // ---------------------------------------------------------------- surfaces ---
 
-/// EXPERIMENT: an image description is pending state and only applies on the
-/// next wl_surface.commit. An idle app never commits, so the shim commits for
-/// it. Set CM_SHIM_NO_COMMIT=1 to get the old wait-for-the-app behaviour.
+/// DEBUG AID, off by default: an image description is pending state and only
+/// applies on the app's next wl_surface.commit. With CM_SHIM_FORCE_COMMIT=1
+/// the shim commits for it, so an idle window changes colour at once - handy
+/// for comparing with and without a profile loaded.
+///
+/// Not for daily use. A commit the app didn't make can land on a popup's
+/// subsurfaces before the app has set them up, and KWin then stops applying
+/// the parent window's commits: the popup never shows and every repaint of
+/// the window leaks a buffer in the compositor.
 fn apply_now(surface: &Rc<WlSurface>) {
-    if std::env::var_os("CM_SHIM_NO_COMMIT").is_none() {
+    if std::env::var_os("CM_SHIM_FORCE_COMMIT").is_some() {
         // Damage so the compositor repaints with the new description.
         surface.send_damage(0, 0, i32::MAX, i32::MAX);
         surface.send_commit();
@@ -526,7 +532,7 @@ fn apply_now(surface: &Rc<WlSurface>) {
 
 /// declare mode: set the configured description on a surface, or queue the
 /// surface until it is ready. The same two cases as at surface creation, but a
-/// round trip later, so this one commits too: the app may already be idle.
+/// round trip later, when the app may already be idle: see `apply_now`.
 fn declare_on(ctx: &Rc<Ctx>, cm: &Rc<WpColorManagementSurfaceV1>, surface: &Rc<WlSurface>) {
     if let Some(desc) = ctx.declared.borrow().as_ref() {
         cm.send_set_image_description(desc, intent(&ctx.cfg));
