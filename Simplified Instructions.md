@@ -46,7 +46,7 @@ hl.monitor({
     bitdepth    = 10,
     vrr         = 0,
 	icc         = "/absolute/path/to/your/.icc"
-	)}
+	})
 ```
 ### 3: Setup cm-shim to intercept your application:
 ```sh

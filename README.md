@@ -106,7 +106,7 @@ An application renders its output to a color space that you set (e.g Adobe RGB) 
 If you have a factory calibrated monitor with a predefined color space mode, like a "DCI-P3" mode you can skip this step and load an .icc of that colorspace in your compositor. This will only be as correct as your monitors factory calibration.
 
 
-For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesnt have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu.
+For any of this to make sense you have to have already made a .icc color profile for your monitor, *without* a vcgt table. vcgt is a gamma correction that is set in your gpu hardware. At the moment Wayland doesn't have any way to apply this, so you will have to make a profile that doesn't rely on outsourcing those corrections to the gpu. (KDE Plasma *does* support loading VCGT profiles, but cannot create them, yet.)
 
  [Xaver Hugl has a great explainer for how to create a vcgt less icc file on his blog.](https://zamundaaa.github.io/wayland/2024/07/16/how-to-profile.html)
  
@@ -119,7 +119,9 @@ render = {
 }
 ```
 
-## Step 2: **Set your compositor color profile to your monitors VCGT-less .icc**
+If you need a profile with vcgt calibration(if you're using a laptop you wont have any way to adjust your monitors whitepoint in hardware),  this is possible on  wayland with KDE Plasma only at this time. You will have to use an x11 session to create your profile, and load that profile in kde.
+
+## Step 2: **Set your compositor color profile to the profile you created in step 1:**
 
 In KDE: System settings > Display Configuration > Color profile 
 
@@ -133,8 +135,8 @@ hl.monitor({
     scale       = 1,
     bitdepth    = 10,
     vrr         = 0,
-	icc         = "/absolute/path/to/your/.icc"
-	)}
+	icc         = "</absolute/path/to/your/.icc>"
+	})
 ```
 
 ## Step 3: **open your application through cm-shim to the color space of your choice, or leave it at default; AdobeRGB**
@@ -149,16 +151,21 @@ cm-shim defaults to adobe-rgb. you can choose the intermediate color space you w
 ```
 cm-shim -s rec2020_g22 run <your application>
 ```
+you can override cm-shims default in ~/.config/cm-shim/config
+any flag passed to cm-shim run or cm-shim install overrides the config.
 
-For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles](https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc) as your application output space seems to work well. 
+For wider gamut monitors, like QD-OLED, setting cm-shim to rec2020_g22 and using [rec2020-elle-V4-g22.icc from elles well behaved profiles](https://github.com/ellelstone/elles_icc_profiles/blob/master/profiles/Rec2020-elle-V4-g22.icc) as your application output space seems to work well and lets you utilize the full gamut range of your monitor.
+
 In theory profiles with this large gamut might create some banding in applications that output color in 8 bit. I've yet to experience any banding myself.
+
+For firefox and zen-browser, since video playback bypasses firefox's color management, srgb skintones will look very bad when interpreted as rec2020. I'd recommend using adobe_rgb instead, as a compromise.
+
 ### Step 4: **Set your application color space to the same color space you chose in step 3**
 IF COLOR SPACE SET IN cm-shim AND YOUR APPLICATION DO NOT MATCH, COLORS **WILL** BE INNACURATE, WITHOUT ANY WARNING.
 
 For colors to be correct when using cm-shim, these two settings have to be matching; what color space the app is outputting, and what the compositor expects the app to output. You set the color space in cm-shim, and set the same color space in the application.
 
-you can override cm-shims default in ~/.config/cm-shim/config
-any flag passed to cm-shim run or cm-shim install overrides the config.
+in darktable you have to store your icc in ~/.config/darktable/color/out, apply it by right clicking on the little monitor icon on the left in the darkroom view.
 
 ## Step 5: **Make it persistent**
 
@@ -208,7 +215,7 @@ I've used spotread to compare 21 color-patches between darktable handling its ow
 
 ### The result:
 
-colverify reports an average ΔE*2k of 0.37, and a peak of 0.92, between the two pipelines.
+colverify reports an average ΔE*2k of 0.25, and a peak of 0.79, between the two pipelines.
 
 For details, you can peruse the verify folder, and the methodology document. 
 
